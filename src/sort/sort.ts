@@ -1,5 +1,6 @@
 type Comparator = (a: any, b: any) => -1 | 0 | 1;
-type ExchangeIndicesFn = <T>(arr: T[], a: number, b: number) => void;
+// type ExchangeIndicesFn = <T>(arr: T[], a: number, b: number) => void;
+type ExchangeIndicesFn = any;
 
 export function* shell<T>(exchange: ExchangeIndicesFn, compare: Comparator, list: T[]) {
   // Use the experimentally derived Ciura sequence, from the Shell Sort Wikipedia entry.
@@ -141,8 +142,8 @@ export function* cycle(exchange, compare, list) {
   }
 }
 
-export function* merge(exchange, compare, list) {
-  function* merge(list, low, mid, high) {
+export function* merge<T>(exchange: any, compare: Comparator, list: T[]) {
+  function* merge(list: T[], low: number, mid: number, high: number) {
     // copy the relevant part of the list.
     const copy = [];
     for (let i = low; i < high; i++) {
@@ -171,10 +172,10 @@ export function* merge(exchange, compare, list) {
       }
 
     }
-    yield { list: list.map(a => a) };
+    // yield { list: list.map(a => a) };
   }
 
-  function* splitMerge(list, low, high) {
+  function* splitMerge(list: T[], low: number, high: number): any {
     if (high <= low + 1) return;
     const mid = low + Math.floor((high - low) / 2);
 
@@ -194,7 +195,7 @@ export function* merge(exchange, compare, list) {
   for (let v of splitMerge(list, 0, list.length)) {
     yield v;
   }
-  return list;
+  // return list;
 };
 
 export function* quick(exchange, compare, list) {

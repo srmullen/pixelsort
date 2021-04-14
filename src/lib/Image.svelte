@@ -1,8 +1,8 @@
 <script lang="ts">
   import { getPixel, setPixel, getRow, setRow, getColumn, setColumn, redComparator, greenComparator, blueComparator, grayComparator } from '../image';
   import type { RGBA, Pixel } from '../image';
-  import { shell, insertion, comb } from '../sort/sort';
-  import { wait, randomInt } from '../utils';
+  import { shell, insertion, comb, merge } from '../sort/sort';
+  import { wait, randomInt, createCanvas } from '../utils';
   import * as R from 'ramda';
 
   type Point = [number, number];
@@ -40,48 +40,36 @@
   let container: HTMLDivElement;
   let image: HTMLImageElement;
 
-  interface CanvasOpts {
-    id?: string;
-    style?: string;
-    className?: string,
-    hidden?: boolean;
-    el?: HTMLElement;
-  }
+  async function sortRows(ctx: CanvasRenderingContext2D, imageData: ImageData) {
+    let vectors = [];
+    let sorters = []
 
-  export function createCanvas(
-    [width, height]: [number, number],
-    { hidden = false, el = document.body, id, style, className }: CanvasOpts = {}
-  ) {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    if (style) {
-      // @ts-ignore
-      canvas.style = style;
+    const exchangeIndicesAndUpdateImageData = (arr: Pixel[], a: number, b: number): void => {
+      // Update the imageData values as sorting is happening
+      const coordA = arr[a].coord;
+      const coordB = arr[b].coord;
+      swapImageDataPixels(imageData, coordA, coordB);
+
+      const tmp = arr[a].data;
+      arr[a].data = arr[b].data;
+      arr[b].data = tmp;
     }
-    if (className) {
-      canvas.className = className;
-    }
-    canvas.hidden = hidden;
-    if (id) {
-      canvas.id = id;
-    }
-    el.appendChild(canvas);
 
-    return canvas;
-  }
-
-
-  function sortRows(imageData: ImageData) {
     for (let row = 0; row < imageData.height; row++) {
       const data = getRow(imageData, row);
-      // data.sort(redComparator);
-      // data.sort(greenComparator);
-      // data.sort(blueComparator);
 
-      // data.sort((a, b) => grayComparator(a.data, b.data));
-      [...shell(exchangeIndices, (a, b) => grayComparator(a.data, b.data), data)];
-      setRow(imageData, row, data.map(pix => pix.data));
+      sorters.push(shell(exchangeIndicesAndUpdateImageData, (a, b) => grayComparator(a.data, b.data), data))
+      // sorters.push(merge(copyFromList, (a, b) => grayComparator(a.data, b.data), data));
+    }
+
+    let swapIterations = 0;
+    for (let swaps of nextSwaps(sorters)) {
+      swapIterations++;
+      // Only draw and wait every 10 iterations
+      if (swapIterations % 10 === 0) {
+        ctx.putImageData(imageData, 0, 0);
+        await wait(1);
+      }
     }
   }
 
@@ -98,14 +86,6 @@
       iter++;
     }
     return arr;
-  }
-
-  function getPixels(imageData: ImageData, area: any): Pixel[] {
-    const pixels: Pixel[] = [];
-    for (let i = 0; i < area.row; i++) {
-
-    }
-    return pixels;
   }
 
   function setPixels(imageData: ImageData, pixels: Pixel[]) {
@@ -167,46 +147,38 @@
   async function sortDiagonalParallel(ctx: CanvasRenderingContext2D, imageData: ImageData) {
     const vectors = [];
     const sorters = [];
+
+    const exchangeIndicesAndUpdateImageData = (arr: Pixel[], a: number, b: number): void => {
+      // Update the imageData for rendering
+      const coordA = arr[a].coord;
+      const coordB = arr[b].coord;
+      swapImageDataPixels(imageData, coordA, coordB);
+
+      // Exchange the indices for the sort function.
+      const tmp = arr[a].data;
+      arr[a].data = arr[b].data;
+      arr[b].data = tmp;
+    }
+
     for (let x = 0; x < imageData.width-1; x++) {
       const imageVector = getImageVector(imageData, [x, 0], [1, 1]);
       vectors.push(imageVector);
       
-      // sorters.push(comb(exchangeIndices, (a, b) => {
-      //   if (!a || !b) {
-      //     console.log(a, b);
-      //     throw new Error('no comparison');
-      //   }
-      //   return grayComparator(a.data, b.data);
-      // }, imageVector));
-
-      sorters.push(shell(exchangeIndices, (a, b) => {
+      sorters.push(comb(exchangeIndicesAndUpdateImageData, (a, b) => {
         return grayComparator(a.data, b.data);
       }, imageVector));
 
-      // sorters.push(insertion(exchangeIndices, (a, b) => {
+      // sorters.push(shell(exchangeIndicesAndUpdateImageData, (a, b) => {
+      //   return grayComparator(a.data, b.data);
+      // }, imageVector));
+
+      // sorters.push(insertion(exchangeIndicesAndUpdateImageData, (a, b) => {
       //   return grayComparator(a.data, b.data);
       // }, imageVector));
     }
 
     let swapIterations = 0;
     for (let swaps of nextSwaps(sorters)) {
-      for (let i = 0; i < swaps.length; i++) {
-        try {
-          const swap = swaps[i];
-          if (swap && typeof swap[0] === 'number') {
-            const vector = vectors[i];
-            // const swapped = swapPixels(vector, swap[0], swap[1]);
-            const swapped = getSwapPixels(vector, swap[0], swap[1]);
-            swapImageDataPixels(imageData, swapped[0].coord, swapped[1].coord);
-            // const clone = clones[i];
-            // const swapped = swapPixels(clone, swap[0], swap[1]);
-            // setPixels(imageData, swapped);
-          }
-        } catch (err) {
-          console.log(err);
-          throw err;
-        }
-      }
       swapIterations++;
       // Only draw and wait every 10 iterations
       if (swapIterations % 100 === 0) {
@@ -254,7 +226,7 @@
     
     const imageData = ctx.getImageData(0, 0, image.width, image.height);
 
-    sortRows(imageData);
+    await sortRows(ctx, imageData);
 
     // await sortDiagonal(ctx, imageData);
 
