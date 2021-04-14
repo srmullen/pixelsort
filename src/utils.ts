@@ -5,3 +5,7 @@ export function wait(ms = 1000): Promise<void> {
     }, ms);
   });
 }
+
+export function randomInt(range = 100) {
+  return Math.floor(Math.random() * range);
+}

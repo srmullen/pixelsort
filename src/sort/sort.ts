@@ -1,6 +1,7 @@
 type Comparator = (a: any, b: any) => -1 | 0 | 1;
+type ExchangeIndicesFn = <T>(arr: T[], a: number, b: number) => void;
 
-export function* shell<T>(exchange: (arr: T[], a: number, b: number) => void, compare: Comparator, list: T[]) {
+export function* shell<T>(exchange: ExchangeIndicesFn, compare: Comparator, list: T[]) {
   // Use the experimentally derived Ciura sequence, from the Shell Sort Wikipedia entry.
   const gapSeq = [701, 301, 132, 57, 23, 10, 4, 1];
   // There's no need to sort gaps larger than the list so find the gap to use.
@@ -10,31 +11,32 @@ export function* shell<T>(exchange: (arr: T[], a: number, b: number) => void, co
     for (let i = gap; i < list.length; i++) {
       for (let j = i; j >= gap && compare(list[j], list[j - gap]) < 0; j -= gap) {
         exchange(list, j, j - gap);
-        yield { list: list.map(a => a) };
+        // yield { list: list.map(a => a) };
+        yield [j, j - gap];
       }
     }
     gapIndex++;
   }
-  return list;
+  // return list;
 }
 
-export function* insertion(exchange, compare, list) {
+export function* insertion<T>(exchange: ExchangeIndicesFn, compare: Comparator, list: T[]) {
   for (let i = 0; i < list.length; i++) {
     // Move backwards over the already sorted elements and continue swaping until
     // newest element is in the correct location.
     for (let j = i; j > 0 && compare(list[j], list[j - 1]) < 0; j--) {
       exchange(list, j, j - 1);
-      yield { list: list.map(a => a) };
+      // yield { list: list.map(a => a) };
+      yield [j, j - 1];
     }
   }
-  return list;
 }
 
-export function* comb(exchange, compare, list) {
+export function* comb<T>(exchange: ExchangeIndicesFn, compare: Comparator, list: T[]) {
   let sorted = false;
   let gap = Math.floor(list.length - 1);
 
-  function nextGap(gap) {
+  function nextGap(gap: number) {
     return gap - 1;
   }
 
@@ -43,7 +45,8 @@ export function* comb(exchange, compare, list) {
     for (let i = 0; i < list.length - gap; i++) {
       if (compare(list[i], list[i + gap]) > 0) {
         exchange(list, i, i + gap);
-        yield { list: list.map(a => a) };
+        // yield { list: list.map(a => a) };
+        yield [i, i + gap];
         swaps++;
       }
     }
