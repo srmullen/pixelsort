@@ -278,6 +278,13 @@
   }
 </script>
 
-<img {src} alt="Sorting" class="hidden" on:load={onImageLoad} bind:this={image} />
+<img 
+  {src} 
+  alt="Sorting" 
+  class="hidden" 
+  on:load={onImageLoad} 
+  bind:this={image} 
+  crossorigin="anonymous"
+/>
 
 <div bind:this={container} class="w-full"></div>

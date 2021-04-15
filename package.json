@@ -28,6 +28,7 @@
     "vite": "^2.1.0"
   },
   "dependencies": {
+    "crypto-random-string": "^4.0.0",
     "ramda": "^0.27.1",
     "tailwindcss": "^2.0.4"
   }
