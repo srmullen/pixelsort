@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getPixel, setPixel, getRow, setRow, getColumn, setColumn, redComparator, greenComparator, blueComparator, grayComparator } from '../image';
   import type { RGBA, Pixel } from '../image';
-  import { shell, insertion, comb, merge } from '../sort/sort';
+  import { shell, insertion, comb, merge, quick } from '../sort/sort';
   import { wait, randomInt, createCanvas } from '../utils';
   import * as R from 'ramda';
 
@@ -55,18 +55,47 @@
       arr[b].data = tmp;
     }
 
+    const copyFromListAndUpdateImageData = (copy: Pixel[], into: Pixel[], copyIndex: number, intoIndex: number) => {
+      const intoPixel = into[intoIndex];
+      const copyPixel = copy[copyIndex];
+      setPixel(imageData, intoPixel.coord[0], intoPixel.coord[1], copyPixel.data);
+      // setPixel(imageData, copyPixel.coord[0], copyPixel.coord[1], intoPixel.data);
+
+      into[intoIndex] = copy[copyIndex];
+    }
+
     for (let row = 0; row < imageData.height; row++) {
       const data = getRow(imageData, row);
 
-      sorters.push(shell(exchangeIndicesAndUpdateImageData, (a, b) => grayComparator(a.data, b.data), data))
-      // sorters.push(merge(copyFromList, (a, b) => grayComparator(a.data, b.data), data));
+      // sorters.push(shell(
+      //   exchangeIndicesAndUpdateImageData, 
+      //   (a, b) => grayComparator(a.data, b.data), 
+      //   data
+      // ));
+
+      // sorters.push(quick(
+      //   exchangeIndicesAndUpdateImageData, 
+      //   (a, b) => grayComparator(a.data, b.data), 
+      //   data
+      // ));
+
+      sorters.push(insertion(exchangeIndicesAndUpdateImageData, (a, b) => {
+        return grayComparator(a.data, b.data);
+      }, data));
+      
+      // sorters.push(merge(
+      //   copyFromListAndUpdateImageData, 
+      //   (a, b) => grayComparator(a.data, b.data), 
+      //   data
+      // ));
     }
 
     let swapIterations = 0;
+    const swapRate = 1;
     for (let swaps of nextSwaps(sorters)) {
       swapIterations++;
       // Only draw and wait every 10 iterations
-      if (swapIterations % 10 === 0) {
+      if (swapIterations % swapRate === 0) {
         ctx.putImageData(imageData, 0, 0);
         await wait(1);
       }
@@ -209,7 +238,7 @@
     }
   }
 
-  async function drawImage() {
+  async function onImageLoad() {
     canvas = createCanvas([image.width, image.height], {
       className: 'w-full'
     });
@@ -237,6 +266,6 @@
   }
 </script>
 
-<img {src} alt="Svelte Logo" class="hidden" on:load={drawImage} bind:this={image} />
+<img {src} alt="Sorting" class="hidden" on:load={onImageLoad} bind:this={image} />
 
 <div bind:this={container} class="w-full"></div>

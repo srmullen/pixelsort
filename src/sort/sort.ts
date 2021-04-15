@@ -1,6 +1,15 @@
+import type { Pixel } from '../image';
+
 type Comparator = (a: any, b: any) => -1 | 0 | 1;
 // type ExchangeIndicesFn = <T>(arr: T[], a: number, b: number) => void;
 type ExchangeIndicesFn = any;
+
+function copyPixel(pix: Pixel): Pixel {
+  return {
+    coord: [pix.coord[0], pix.coord[1]],
+    data: [pix.data[0], pix.data[1], pix.data[2], pix.data[3]]
+  };
+}
 
 export function* shell<T>(exchange: ExchangeIndicesFn, compare: Comparator, list: T[]) {
   // Use the experimentally derived Ciura sequence, from the Shell Sort Wikipedia entry.
@@ -142,12 +151,12 @@ export function* cycle(exchange, compare, list) {
   }
 }
 
-export function* merge<T>(exchange: any, compare: Comparator, list: T[]) {
-  function* merge(list: T[], low: number, mid: number, high: number) {
+export function* merge(exchange: any, compare: Comparator, list: Pixel[]) {
+  function* merge(list: Pixel[], low: number, mid: number, high: number) {
     // copy the relevant part of the list.
     const copy = [];
     for (let i = low; i < high; i++) {
-      copy[i] = list[i];
+      copy[i] = copyPixel(list[i]);
     }
 
     let i1 = low; // first sorted list index.
@@ -156,26 +165,31 @@ export function* merge<T>(exchange: any, compare: Comparator, list: T[]) {
       // When the mid/high list is exhausted can just take the rest of the low/mid list...
       if (i2 >= high) {
         exchange(copy, list, i1, i);
+        yield [i1, i];
         i1++;
         // and viceversa.
       } else if (i1 >= mid) {
         exchange(copy, list, i2, i);
+        yield [i2, i];
         i2++;
       } else if (compare(copy[i1], copy[i2]) <= 0) {
         // take the smaller element and place it at position i.
         exchange(copy, list, i1, i);
+        yield [i1, i];
         // The element from the first list is now used to increase its index.
         i1++;
       } else {
         exchange(copy, list, i2, i);
+        yield [i2, i];
         i2++;
       }
 
     }
     // yield { list: list.map(a => a) };
+    // yield;
   }
 
-  function* splitMerge(list: T[], low: number, high: number): any {
+  function* splitMerge(list: Pixel[], low: number, high: number): any {
     if (high <= low + 1) return;
     const mid = low + Math.floor((high - low) / 2);
 
@@ -196,10 +210,11 @@ export function* merge<T>(exchange: any, compare: Comparator, list: T[]) {
     yield v;
   }
   // return list;
+  yield;
 };
 
-export function* quick(exchange, compare, list) {
-  function* partition(list, low, high) {
+export function* quick<T>(exchange: ExchangeIndicesFn, compare: Comparator, list: T[]) {
+  function* partition(list: T[], low: number, high: number): Generator {
     // Base case: List is too small to partition.
     if (high <= low) return;
 
@@ -230,12 +245,14 @@ export function* quick(exchange, compare, list) {
 
       // Swap the low and high elements.
       exchange(list, i, j);
-      yield { list: list.map(a => a) };
+      // yield { list: list.map(a => a) };
+      yield;
     }
 
     // Put the pivot between the partitions
     exchange(list, i, pivot);
-    yield { list: list.map(a => a) };
+    // yield { list: list.map(a => a) };
+    yield;
 
     // Partition the list smaller than the pivot.
     for (let v of partition(list, low, i - 1)) {
@@ -251,7 +268,7 @@ export function* quick(exchange, compare, list) {
   for (let v of partition(list, 0, list.length - 1)) {
     yield v;
   }
-  return list;
+  // return list;
 }
 
 export function* cocktail(exchange, compare, list) {
