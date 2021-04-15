@@ -39,10 +39,13 @@
   let canvas: HTMLCanvasElement;
   let container: HTMLDivElement;
   let image: HTMLImageElement;
+  let ctx: CanvasRenderingContext2D;
+  let video: HTMLVideoElement;
+
+  let sorting = false;
 
   async function sortRows(ctx: CanvasRenderingContext2D, imageData: ImageData) {
-    let vectors = [];
-    let sorters = []
+    let sorters = [];
 
     const exchangeIndicesAndUpdateImageData = (arr: Pixel[], a: number, b: number): void => {
       // Update the imageData values as sorting is happening
@@ -67,11 +70,11 @@
     for (let row = 0; row < imageData.height; row++) {
       const data = getRow(imageData, row);
 
-      // sorters.push(shell(
-      //   exchangeIndicesAndUpdateImageData, 
-      //   (a, b) => grayComparator(a.data, b.data), 
-      //   data
-      // ));
+      sorters.push(shell(
+        exchangeIndicesAndUpdateImageData, 
+        (a, b) => grayComparator(a.data, b.data), 
+        data
+      ));
 
       // sorters.push(quick(
       //   exchangeIndicesAndUpdateImageData, 
@@ -91,9 +94,9 @@
       //   return grayComparator(a.data, b.data);
       // }, data));
 
-      sorters.push(heap(exchangeIndicesAndUpdateImageData, (a, b) => {
-        return grayComparator(a.data, b.data);
-      }, data));
+      // sorters.push(heap(exchangeIndicesAndUpdateImageData, (a, b) => {
+      //   return grayComparator(a.data, b.data);
+      // }, data));
       
       // sorters.push(merge(
       //   copyFromListAndUpdateImageData, 
@@ -102,15 +105,29 @@
       // ));
     }
 
+    // Record
+    // const videoStream = canvas.captureStream(30);
+
     let swapIterations = 0;
     const swapRate = 1;
-    for (let swaps of nextSwaps(sorters)) {
-      swapIterations++;
-      // Only draw and wait every 10 iterations
-      if (swapIterations % swapRate === 0) {
-        ctx.putImageData(imageData, 0, 0);
-        await wait(1);
+
+    // let done = nextSwaps(sorters);
+    let gen = nextSwaps(sorters);
+    // let done = false;
+    let { done } = gen.next();
+    while (!done && sorting) {
+      for (done of nextSwaps(sorters)) {
+          if (!sorting) {
+            break;
+          }
+          if (swapIterations % swapRate === 0) {
+          ctx.putImageData(imageData, 0, 0);
+          await wait(1);
+        }
+        swapIterations++;
       }
+      done = gen.next().done;
+      // done = nextSwaps(sorters);
     }
   }
 
@@ -181,7 +198,7 @@
         }
         swaps.push(iter.value);
       }
-      yield swaps;
+      yield done;
     }
   }
 
@@ -255,7 +272,7 @@
       className: 'w-full'
     });
     
-    const ctx = canvas.getContext('2d');
+    ctx = canvas.getContext('2d')!;
     if (!ctx) throw new Error('ctx not defined');
     ctx.fillStyle = '#fff';
     ctx.beginPath();
@@ -267,14 +284,24 @@
     
     const imageData = ctx.getImageData(0, 0, image.width, image.height);
 
-    await sortRows(ctx, imageData);
+    // await sortRows(ctx, imageData);
 
     // await sortDiagonal(ctx, imageData);
 
     // await sortDiagonalParallel(ctx, imageData);
 
     ctx.putImageData(imageData, 0, 0);
-    console.log('done');
+    console.log('ready');
+  }
+
+  async function runSort() {
+    if (!sorting) {
+      sorting = true;
+      const imageData = ctx.getImageData(0, 0, image.width, image.height);
+      await sortRows(ctx, imageData);
+    } else {
+      sorting = false;
+    }
   }
 </script>
 
@@ -287,4 +314,16 @@
   crossorigin="anonymous"
 />
 
-<div bind:this={container} class="w-full"></div>
+<div>
+  <div>
+    <button class="px-4 py-3 bg-red-600 text-white" on:click={runSort}>
+      {#if sorting}
+        Stop
+      {:else}
+        Sort
+      {/if}
+    </button>
+  </div>
+  <div bind:this={container} class="w-full"></div>
+  <video bind:this={video}></video>
+</div>
