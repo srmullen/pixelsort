@@ -106,10 +106,26 @@
     }
 
     // Record
-    // const videoStream = canvas.captureStream(30);
+    // @ts-ignore
+    const videoStream = canvas.captureStream(30);
+    const mediaRecorder = new MediaRecorder(videoStream);
+
+    const chunks: any[] = []
+    mediaRecorder.ondataavailable = function(e: any) {
+      chunks.push(e.data);
+    }
+
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/mp4' });
+      const videoURL = URL.createObjectURL(blob);
+      video.src = videoURL;
+    }
+
+    mediaRecorder.start();
 
     let swapIterations = 0;
     const swapRate = 1;
+
 
     // let done = nextSwaps(sorters);
     let gen = nextSwaps(sorters);
@@ -129,6 +145,8 @@
       done = gen.next().done;
       // done = nextSwaps(sorters);
     }
+
+    mediaRecorder.stop();
   }
 
   function getImageVector(imageData: ImageData, from: [number, number], vector: [number, number]): Pixel[] {
