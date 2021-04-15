@@ -64,3 +64,29 @@ export function randomImageURL() {
 //   const url = `https://picsum.photos/1333/1000?_=${cryptoRandomString({ length: 6 })}`;
 //   return loadImage(url);
 // }
+
+export function saveURL(url: string, { filename = 'video.mp4' } = {}) {
+  // const img = canvas.toDataURL('image/jpeg', 1.0);
+  const link = document.createElement('a');
+  link.setAttribute('download', filename);
+  link.href = url;
+  // @ts-ignore
+  link.style = 'display: none';
+  document.body.appendChild(link);
+  link.click();
+}
+
+export function download(chunks: any[]) {
+  const blob = new Blob(chunks, { type: 'video/webm' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = 'test.webm';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }, 100);
+}

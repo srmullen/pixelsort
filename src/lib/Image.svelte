@@ -2,7 +2,7 @@
   import { getPixel, setPixel, getRow, setRow, getColumn, setColumn, redComparator, greenComparator, blueComparator, grayComparator } from '../image';
   import type { RGBA, Pixel } from '../image';
   import { shell, insertion, comb, merge, quick, selection, heap } from '../sort/sort';
-  import { wait, randomInt, createCanvas } from '../utils';
+  import { wait, randomInt, createCanvas, saveURL, download } from '../utils';
   import * as R from 'ramda';
 
   type Point = [number, number];
@@ -105,26 +105,8 @@
       // ));
     }
 
-    // Record
-    // @ts-ignore
-    const videoStream = canvas.captureStream(30);
-    const mediaRecorder = new MediaRecorder(videoStream);
-
-    const chunks: any[] = []
-    mediaRecorder.ondataavailable = function(e: any) {
-      chunks.push(e.data);
-    }
-
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'video/mp4' });
-      const videoURL = URL.createObjectURL(blob);
-      video.src = videoURL;
-    }
-
-    mediaRecorder.start();
-
     let swapIterations = 0;
-    const swapRate = 1;
+    const swapRate = 20;
 
 
     // let done = nextSwaps(sorters);
@@ -145,7 +127,29 @@
       done = gen.next().done;
       // done = nextSwaps(sorters);
     }
+  }
 
+  async function record(fn: () => Promise<any>) {
+    // Record
+    // @ts-ignore
+    const videoStream = canvas.captureStream(30);
+    const mediaRecorder = new MediaRecorder(videoStream);
+
+    const chunks: any[] = []
+    mediaRecorder.ondataavailable = function(e: any) {
+      chunks.push(e.data);
+    }
+
+    mediaRecorder.onstop = () => {
+      // const blob = new Blob(chunks, { type: 'video/mp4' });
+      // const videoURL = URL.createObjectURL(blob);
+      // video.src = videoURL;
+      // download(videoURL)
+      download(chunks);
+    }
+
+    mediaRecorder.start();
+    await fn();
     mediaRecorder.stop();
   }
 
@@ -316,7 +320,7 @@
     if (!sorting) {
       sorting = true;
       const imageData = ctx.getImageData(0, 0, image.width, image.height);
-      await sortRows(ctx, imageData);
+      await record(() => sortRows(ctx, imageData));
     } else {
       sorting = false;
     }
