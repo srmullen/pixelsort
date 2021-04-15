@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getPixel, setPixel, getRow, setRow, getColumn, setColumn, redComparator, greenComparator, blueComparator, grayComparator } from '../image';
   import type { RGBA, Pixel } from '../image';
-  import { shell, insertion, comb, merge, quick } from '../sort/sort';
+  import { shell, insertion, comb, merge, quick, selection, heap } from '../sort/sort';
   import { wait, randomInt, createCanvas } from '../utils';
   import * as R from 'ramda';
 
@@ -79,7 +79,19 @@
       //   data
       // ));
 
-      sorters.push(insertion(exchangeIndicesAndUpdateImageData, (a, b) => {
+      // sorters.push(insertion(exchangeIndicesAndUpdateImageData, (a, b) => {
+      //   return grayComparator(a.data, b.data);
+      // }, data));
+
+      // sorters.push(comb(exchangeIndicesAndUpdateImageData, (a, b) => {
+      //   return grayComparator(a.data, b.data);
+      // }, data));
+
+      // sorters.push(selection(exchangeIndicesAndUpdateImageData, (a, b) => {
+      //   return grayComparator(a.data, b.data);
+      // }, data));
+
+      sorters.push(heap(exchangeIndicesAndUpdateImageData, (a, b) => {
         return grayComparator(a.data, b.data);
       }, data));
       

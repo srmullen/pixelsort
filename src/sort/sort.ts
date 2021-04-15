@@ -87,7 +87,7 @@ export function* bubble(exchange, compare, list) {
   return list;
 };
 
-export function* selection(exchange, compare, list) {
+export function* selection<T>(exchange: ExchangeIndicesFn, compare: Comparator, list: T[]) {
   for (let i = 0; i < list.length - 1; i++) {
     let min = i;
     for (let j = i + 1; j < list.length; j++) {
@@ -99,11 +99,11 @@ export function* selection(exchange, compare, list) {
     // Exchange positions if not already in the correct location.
     if (min !== i) {
       exchange(list, min, i);
-      yield { list: list.map(a => a) };
+      // yield { list: list.map(a => a) };
+      yield;
     }
   }
-  // Return the list even though it's mutatated so algorithms can be easily interchanged in pixel sorter.
-  return list;
+  // return list;
 };
 
 export function* cycle(exchange, compare, list) {
@@ -375,9 +375,9 @@ export function* bogo(shuffle, compare, list) {
   yield { list: list.map(a => a) };
 }
 
-export function* heap(exchange, compare, list) {
+export function* heap<T>(exchange: ExchangeIndicesFn, compare: Comparator, list: T[]) {
   // Subtree is index into the array. The subtree chilren must already be a heaps.
-  function* heapify(size, subtree) {
+  function* heapify(size: number, subtree: number): Generator {
     let root = subtree;
     // get the children
     let left = 2 * subtree + 1;
@@ -399,7 +399,8 @@ export function* heap(exchange, compare, list) {
 
     if (subtree !== root) {
       exchange(list, root, subtree);
-      yield { list: list.map(a => a) };
+      // yield { list: list.map(a => a) };
+      yield;
       // affected subtree now needs to be heapified.
       for (let v of heapify(size, root)) {
         yield v;
@@ -418,13 +419,12 @@ export function* heap(exchange, compare, list) {
   // Then heapify the affected subtree.
   for (let i = list.length - 1; i >= 0; i--) {
     exchange(list, 0, i);
-    yield { list: list.map(a => a), sortedRight: i };
+    // yield { list: list.map(a => a), sortedRight: i };
+    yield;
     for (let v of heapify(i, 0)) {
       yield v;
     }
   }
-
-  // yield { sorted: true };
 }
 
 export function* bitonic(exchange, compare, list) {
